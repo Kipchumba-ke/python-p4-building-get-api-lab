@@ -2,6 +2,7 @@
 
 from flask import Flask, make_response, jsonify
 from flask_migrate import Migrate
+from sqlalchemy import func
 
 from models import db, Bakery, BakedGood
 
@@ -11,28 +12,53 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
 migrate = Migrate(app, db)
-
 db.init_app(app)
 
 @app.route('/')
 def index():
     return '<h1>Bakery GET API</h1>'
 
-@app.route('/bakeries')
+@app.route('/bakeries', methods=['GET'])
 def bakeries():
-    return ''
+    bakeries_list = [bakery.to_dict() for bakery in Bakery.query.all()]
+    response = make_response(
+        jsonify(bakeries_list),
+        200
+    )
+    return response
 
 @app.route('/bakeries/<int:id>')
 def bakery_by_id(id):
-    return ''
+    bakery = Bakery.query.filter(Bakery.id == id).first()
+    if bakery:
+        bakery_dict = bakery.to_dict()
+        response = make_response(jsonify(bakery_dict), 200)
+    else:
+        response = make_response(jsonify({"error": "Bakery not found"}), 404)
+    return response
 
 @app.route('/baked_goods/by_price')
 def baked_goods_by_price():
-    return ''
+    baked_goods = [bake.to_dict() for bake in BakedGood.query.order_by(BakedGood.price.desc()).all()]
+    response = make_response(
+        jsonify(baked_goods),
+        200
+    )
+    return response
 
 @app.route('/baked_goods/most_expensive')
 def most_expensive_baked_good():
-    return ''
+    most_expensive = BakedGood.query.order_by(BakedGood.price.desc()).first()
+    if most_expensive:
+        bakery_dict = most_expensive.to_dict()
+    else:
+        bakery_dict = {"error": "No baked goods found"}
+
+    response = make_response(
+        jsonify(bakery_dict),
+        200
+    )
+    return response
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
